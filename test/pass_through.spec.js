@@ -19,7 +19,7 @@ describe('passThrough tests (requires Node)', function() {
         } else {
           resp.statusCode = 200;
           // Reply with path minus leading /
-          resp.end(req.url.slice(1), 'utf8');
+          resp.end(req.url.startsWith('/') ? req.url.slice(1) : req.url, 'utf8');
         }
       })
         .listen(0, '127.0.0.1', function() {
@@ -108,5 +108,23 @@ describe('passThrough tests (requires Node)', function() {
           expect(response.data).to.equal('post');
         })
     ]);
+  });
+
+  it('handles baseURL correctly', function () {
+    instance = axios.create({
+      baseURL: '/test',
+      proxy: {
+        host: '127.0.0.1',
+        port: httpServer.address().port
+      }
+    });
+    mock = new MockAdapter(instance);
+
+    mock.onAny().passThrough();
+    return instance.get('/foo')
+      .then(function (response) {
+        expect(response.status).to.equal(200);
+        expect(response.data).to.equal('http://null/test/foo');
+      });
   });
 });
